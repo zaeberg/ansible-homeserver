@@ -1,0 +1,10 @@
+docker_user: admin
+app_root: /opt/apps
+hello_port: 8080
+
+base_packages:
+  - curl
+  - git
+  - htop
+  - ca-certificates
+  - gnupg

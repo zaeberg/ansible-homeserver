@@ -1,0 +1,7 @@
+- name: Configure homeserver
+  hosts: homeserver
+  become: true
+
+  roles:
+    - common
+    - docker
