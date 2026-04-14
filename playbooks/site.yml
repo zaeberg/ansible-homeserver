@@ -6,3 +6,4 @@
     - common
     - users
     - docker
+    - ufw

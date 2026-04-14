@@ -1,0 +1,20 @@
+ufw_enabled: true
+ufw_logging: low
+
+# Реальную LAN-подсеть
+ufw_lan_cidrs:
+  - "192.168.1.0/24"
+
+ufw_defaults:
+  incoming: deny
+  outgoing: allow
+  routed: deny
+
+# Порты, которые открыты для всех
+ufw_public_tcp_ports:
+  - "22"
+  - "80"
+
+# Порты, которые открыты только из LAN
+ufw_lan_only_tcp_ports:
+  - "8080"

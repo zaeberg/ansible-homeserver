@@ -1,0 +1,45 @@
+- name: Ensure ufw is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Set default incoming policy
+  community.general.ufw:
+    direction: incoming
+    default: "{{ ufw_defaults.incoming }}"
+
+- name: Set default outgoing policy
+  community.general.ufw:
+    direction: outgoing
+    default: "{{ ufw_defaults.outgoing }}"
+
+- name: Set default routed policy
+  community.general.ufw:
+    direction: routed
+    default: "{{ ufw_defaults.routed }}"
+
+- name: Set UFW logging level
+  community.general.ufw:
+    logging: "{{ ufw_logging }}"
+
+- name: Allow public TCP ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item }}"
+  loop: "{{ ufw_public_tcp_ports }}"
+
+- name: Allow LAN-only TCP ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item.1 }}"
+    src: "{{ item.0 }}"
+    comment: "LAN only"
+  loop: "{{ ufw_lan_cidrs | product(ufw_lan_only_tcp_ports) | list }}"
+
+- name: Enable ufw
+  community.general.ufw:
+    state: enabled
+  when: ufw_enabled | bool
