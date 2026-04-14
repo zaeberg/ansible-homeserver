@@ -1,9 +1,18 @@
-docker_user: admin
+admin_user: admin
+admin_nopasswd_sudo: true
+
+admin_public_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDq+vKwRmYJ4u/8pgcNUXzutGvn6x+ldS7YXGrlyVAV5 ansible-admin
+
+# запрещает вход по ssh через пасс. Только по ключу. При первоначальной настройке сервера нужно переключить в false
+ssh_harden: true
+
 app_root: /opt/apps
+
+docker_user: admin
 
 base_packages:
   - curl
   - git
-  - htop
   - ca-certificates
   - gnupg

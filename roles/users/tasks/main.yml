@@ -1,0 +1,52 @@
+- name: Ensure admin user exists
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: true
+    create_home: true
+    state: present
+
+- name: Install admin SSH public keys
+  ansible.posix.authorized_key:
+    user: "{{ admin_user }}"
+    key: "{{ item }}"
+    state: present
+    manage_dir: true
+  loop: "{{ admin_public_keys }}"
+
+- name: Allow passwordless sudo for admin user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ admin_user }}"
+    content: "{{ admin_user }} ALL=(ALL:ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+  when: admin_nopasswd_sudo | bool
+
+- name: Disable SSH password authentication
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication\s+'
+    line: 'PasswordAuthentication no'
+    state: present
+  when: ssh_harden | bool
+  notify: Restart ssh
+
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin\s+'
+    line: 'PermitRootLogin no'
+    state: present
+  when: ssh_harden | bool
+  notify: Restart ssh
+
+- name: Ensure SSH public key auth is enabled
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PubkeyAuthentication\s+'
+    line: 'PubkeyAuthentication yes'
+    state: present
+  when: ssh_harden | bool
+  notify: Restart ssh
