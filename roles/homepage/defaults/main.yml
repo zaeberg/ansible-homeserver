@@ -1,0 +1,11 @@
+homepage_image: "glanceapp/glance:v0.8.4"
+homepage_container_name: "homeserver-glance"
+
+homepage_compose_project_name: homeserver-glance
+
+homepage_host: "home.local"
+homepage_port: 8080
+
+homepage_dir: "{{ paths.app_root }}/glance"
+homepage_config_dir: "{{ homepage_dir }}/config"
+homepage_assets_dir: "{{ homepage_dir }}/assets"

@@ -9,3 +9,4 @@
     - ufw
     - traefik
     - glances
+    - homepage

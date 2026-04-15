@@ -26,3 +26,4 @@ paths:
   app_data_root: /srv/data
 
 
+actual_ip: "{{ ansible_facts['default_ipv4']['address'] }}"

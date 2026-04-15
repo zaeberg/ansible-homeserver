@@ -23,7 +23,6 @@ traefik_https_port: 443
 # 8080 публикуется только на LAN IP хоста
 traefik_enable_direct_dashboard_port: true
 traefik_dashboard_direct_port: 8080
-traefik_dashboard_bind_ip: "{{ ansible_facts['default_ipv4']['address'] }}"
 
 # На случай проблем с AppArmor/DBus у helper
 traefik_avahi_privileged: false

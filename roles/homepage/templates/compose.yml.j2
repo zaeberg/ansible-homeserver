@@ -1,0 +1,51 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Glance - Homepage dashboard
+  # ---------------------------------------------------------------------------
+  # Дашборд для главной страницы с новостями и виджетами
+  # Docs: https://github.com/glanceapp/
+  # ---------------------------------------------------------------------------
+  
+  glance:
+    container_name: "{{ homepage_container_name }}"
+    image: "{{ homepage_image }}"
+
+    restart: unless-stopped
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro              # если нужен виджет с докером
+      - {{ homepage_config_dir }}:/app/config
+      - {{ homepage_assets_dir }}:/app/assets
+
+    ports:
+      - "{{ actual_ip }}:{{ homepage_port }}:8080"
+
+    env_file: {{ homepage_dir }}/.env
+
+    networks:
+      - internal
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_networks.internal.name }}"
+      - "traefik.http.routers.homepage.rule=Host(`{{ homepage_host }}`)"
+      - "traefik.http.services.homepage.loadbalancer.server.port={{ homepage_port }}"
+      - "traefik.http.routers.homepage.entrypoints=web"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:{{ homepage_port }} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+
+networks:
+  internal:
+    external: true
+    name: "{{ docker_networks.internal.name }}"
+
+  public:
+    external: true
+    name: "{{ docker_networks.public.name }}"

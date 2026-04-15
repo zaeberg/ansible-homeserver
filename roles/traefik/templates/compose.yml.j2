@@ -24,7 +24,7 @@ services:
       - "{{ traefik_https_port }}:443"               # HTTPS - для будущего использования с Let's Encrypt
 {% endif %}
 {% if traefik_enable_direct_dashboard_port | bool %}
-      - "{{ traefik_dashboard_bind_ip }}:{{ traefik_dashboard_direct_port }}:8080" # Dashboard - только для локальной сети (firewall!)
+      - "{{ actual_ip }}:{{ traefik_dashboard_direct_port }}:8080" # Dashboard - только для локальной сети (firewall!)
 {% endif %}
 
     volumes:

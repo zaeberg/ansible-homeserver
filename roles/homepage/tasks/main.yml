@@ -1,0 +1,58 @@
+- name: Homepage - Ensure directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ homepage_dir }}", mode: "0755" }
+    - { path: "{{ homepage_config_dir }}", mode: "0755" }
+    - { path: "{{ homepage_assets_dir }}", mode: "0755" }
+
+- name: Homepage - Copy configuration folder
+  ansible.builtin.copy:
+    src: "config/{{ item.name }}"
+    dest: "{{ homepage_config_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { name: "glance.yml" }
+    - { name: "home.yml" }
+
+- name: Homepage - Copy assets folder
+  ansible.builtin.copy:
+    src: "assets/{{ item.name }}"
+    dest: "{{ homepage_assets_dir }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { name: "user.css" }
+
+- name: Homepage - Copy env file
+  ansible.builtin.copy:
+    src: ".env"
+    dest: "{{ homepage_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Homepage - Render Docker Compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ homepage_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Homepage - Deploy with Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ homepage_dir }}"
+    project_name: "{{ homepage_compose_project_name }}"
+    files:
+      - compose.yml
+    state: present
+    wait: true
+    wait_timeout: 120
