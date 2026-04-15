@@ -1,0 +1,13 @@
+glances_image: "nicolargo/glances:4.4.1"
+glances_container_name: "homeserver-glances"
+
+glances_compose_project_name: homeserver-glances
+
+glances_host: "glances.home.local"
+
+glances_port: 61208
+
+glances_dir: "{{ paths.app_root }}/glances"
+glances_config_dir: "{{ glances_dir }}/config"
+
+

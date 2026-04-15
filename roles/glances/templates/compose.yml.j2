@@ -1,0 +1,59 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Glances - System Monitoring
+  # ---------------------------------------------------------------------------
+  # Мониторинг ресурсов сервера в реальном времени (CPU, RAM, диск, сеть, процессы).
+  # Config: compose/glances/glances.conf
+  # Docs: https://glances.readthedocs.io/
+  # ---------------------------------------------------------------------------
+  glances:
+    image: "{{ glances_image }}"
+    container_name: "{{ glances_container_name }}"
+
+    restart: unless-stopped
+
+    # PID mode: host - обязательно для мониторинга всех процессов хост-системы
+    # Без этого Glances будет видеть только свои собственные процессы
+    pid: "host"
+
+    # volumes для доступа к метрикам хоста
+    volumes:
+      - /:/rootfs:ro                                                         # root filesystem (только чтение)
+      - /var/run/docker.sock:/var/run/docker.sock:ro                         # Docker socket для мониторинга контейнеров
+      - /etc/os-release:/etc/os-release:ro                                   # для корректного отображения информации о дистрибутиве
+      - {{ glances_config_dir }}/glances.conf:/glances/conf/glances.conf:ro  # Конфигурационный файл
+
+    # временная файловая система в памяти
+    tmpfs:
+      - /tmp
+
+    environment:
+      - TZ=Europe/Kaliningrad                                               # Часовой пояс
+      - GLANCES_OPT=-C /glances/conf/glances.conf -w                        # -C = конфиг, -w = web-режим
+      - PYTHONPYCACHEPREFIX=/tmp/py_caches                                  # Кэш Python в /tmp (read-only FS)
+
+    networks:
+      - internal                                     # Внутренняя сеть для общения с сервисами
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_networks.internal.name }}"
+      - "traefik.http.routers.glances.rule=Host(`{{ glances_host }}`)"
+      - "traefik.http.services.glances.loadbalancer.server.port={{ glances_port }}"
+      - "traefik.http.routers.glances.entrypoints=web"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:{{ glances_port }}/api/4/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  internal:
+    external: true
+    name: "{{ docker_networks.internal.name }}"
+
+  public:
+    external: true
+    name: "{{ docker_networks.public.name }}"

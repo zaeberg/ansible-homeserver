@@ -1,0 +1,36 @@
+- name: Ensure Glances directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ glances_dir }}", mode: "0755" }
+    - { path: "{{ glances_config_dir }}", mode: "0755" }
+
+- name: Render Glances configuration
+  ansible.builtin.template:
+    src: glances.conf.j2
+    dest: "{{ glances_config_dir }}/glances.conf"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Render Docker Compose file for Glances
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ glances_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy Glances with Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ glances_dir }}"
+    project_name: "{{ glances_compose_project_name }}"
+    files:
+      - compose.yml
+    state: present
+    wait: true
+    wait_timeout: 120

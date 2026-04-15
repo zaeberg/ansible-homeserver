@@ -1,7 +1,6 @@
 traefik_stack_dir: "{{ paths.app_root }}/traefik"
-traefik_config_dir: "{{ traefik_stack_dir }}/traefik"
-traefik_data_dir: "{{ paths.app_data_root }}/traefik"
-traefik_letsencrypt_dir: "{{ traefik_data_dir }}/letsencrypt"
+traefik_config_dir: "{{ traefik_stack_dir }}/config"
+traefik_letsencrypt_dir: "{{ traefik_config_dir }}/letsencrypt"
 
 traefik_compose_project_name: homelab-traefik
 
