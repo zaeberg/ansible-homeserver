@@ -12,24 +12,21 @@
 
 - name: Homepage - Copy configuration folder
   ansible.builtin.copy:
-    src: "config/{{ item.name }}"
-    dest: "{{ homepage_config_dir }}/{{ item.name }}"
+    src: "config/"
+    dest: "{{ homepage_config_dir }}/"
     owner: root
     group: root
     mode: "0644"
-  loop:
-    - { name: "glance.yml" }
-    - { name: "home.yml" }
+    directory_mode: "0755"
 
 - name: Homepage - Copy assets folder
   ansible.builtin.copy:
-    src: "assets/{{ item.name }}"
-    dest: "{{ homepage_assets_dir }}/{{ item.name }}"
+    src: "assets/"
+    dest: "{{ homepage_assets_dir }}/"
     owner: root
     group: root
     mode: "0644"
-  loop:
-    - { name: "user.css" }
+    directory_mode: "0755"
 
 - name: Homepage - Copy env file
   ansible.builtin.copy:

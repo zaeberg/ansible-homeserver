@@ -32,6 +32,18 @@
 
     - size: full
       widgets:
+        - type: monitor
+          cache: 1m
+          title: Services
+          sites:
+            - title: Traefik
+              url: http://traefik.home.local
+              icon: /assets/logo/traefik.png
+            - title: Glances
+              url: http://glances.home.local
+              icon: /assets/logo/glances.png
+
+
         - type: group
           widgets:
             - type: hacker-news

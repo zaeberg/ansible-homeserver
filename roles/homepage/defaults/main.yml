@@ -1,7 +1,7 @@
 homepage_image: "glanceapp/glance:v0.8.4"
 homepage_container_name: "homeserver-glance"
 
-homepage_compose_project_name: homeserver-glance
+homepage_compose_project_name: homeserver-homepage
 
 homepage_host: "home.local"
 homepage_port: 8080
