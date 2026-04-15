@@ -59,3 +59,18 @@
     name: "{{ docker_user }}"
     groups: docker
     append: true
+
+- name: Ensure Docker networks exist
+  community.docker.docker_network:
+    name: "{{ item.value.name }}"
+    driver: "{{ item.value.driver }}"
+    internal: "{{ item.value.internal | default(false) }}"
+    state: present
+  loop: "{{ docker_networks | dict2items }}"
+
+
+
+
+
+
+

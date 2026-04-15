@@ -7,3 +7,4 @@
     - users
     - docker
     - ufw
+    - traefik

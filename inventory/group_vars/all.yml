@@ -4,15 +4,25 @@ admin_nopasswd_sudo: true
 admin_public_keys:
   - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDq+vKwRmYJ4u/8pgcNUXzutGvn6x+ldS7YXGrlyVAV5 ansible-admin
 
+# Docker common vars
+docker_user: admin
+
+docker_networks:
+  internal:
+    name: homeserver-internal
+    driver: bridge
+    internal: true
+  public:
+    name: homeserver-public
+    driver: bridge
+    internal: false
+
 # запрещает вход по ssh через пасс. Только по ключу. При первоначальной настройке сервера нужно переключить в false
 ssh_harden: true
 
-app_root: /opt/apps
+# Директории
+paths:
+  app_root: /opt/apps
+  app_data_root: /srv/data
 
-docker_user: admin
 
-base_packages:
-  - curl
-  - git
-  - ca-certificates
-  - gnupg

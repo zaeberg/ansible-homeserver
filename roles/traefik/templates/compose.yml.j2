@@ -1,0 +1,99 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Traefik - Reverse Proxy
+  # ---------------------------------------------------------------------------
+  # Единая точка входа для всех HTTP/HTTPS запросов к сервисам.
+  # Автоматически обнаруживает Docker контейнеры через labels и маршрутизирует
+  # запросы по hostname.
+  #
+  # Dashboard: http://traefik.home.local/dashboard/
+  # Docs: https://doc.traefik.io/traefik/
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: "{{ traefik_image }}"
+    container_name: "{{ traefik_container_name }}"
+
+    restart: unless-stopped
+
+    security_opt:
+      - no-new-privileges:true
+
+    ports:
+      - "{{ traefik_http_port }}:80"                 # HTTP - входящие запросы
+{% if traefik_enable_https | bool %}
+      - "{{ traefik_https_port }}:443"               # HTTPS - для будущего использования с Let's Encrypt
+{% endif %}
+{% if traefik_enable_direct_dashboard_port | bool %}
+      - "{{ traefik_dashboard_bind_ip }}:{{ traefik_dashboard_direct_port }}:8080" # Dashboard - только для локальной сети (firewall!)
+{% endif %}
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - {{ traefik_letsencrypt_dir }}:/letsencrypt
+
+    networks:
+      - internal                                     # Внутренняя сеть для общения с сервисами
+      - public                                       # Публичная сеть для приёма внешних запросов
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_networks.internal.name }}"
+      - "traefik.http.routers.dashboard.rule=Host(`{{ traefik_dashboard_host }}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # traefik-avahi-helper - mDNS/Bonjour Publisher
+  # ---------------------------------------------------------------------------
+  # Публикует Docker контейнеры в локальной сети через mDNS/Bonjour.
+  # Позволяет обращаться к сервисам по именам вида *.home.local без DNS.
+  #
+  # Requirements:
+  #   - avahi-daemon должен быть установлен на хосте
+  #   - /var/run/avahi-daemon/socket должен быть доступен
+  # Docs: https://github.com/hardillb/traefik-avahi-helper
+  # ---------------------------------------------------------------------------
+  traefik-avahi:
+    image: "{{ traefik_avahi_image }}"
+    container_name: "{{ traefik_avahi_container_name }}"
+
+    restart: unless-stopped
+
+    hostname: avahi-helper
+
+{% if traefik_avahi_privileged | bool %}
+    privileged: true
+{% endif %}
+
+    # IPC и security настройки (требуются для avahi)
+    ipc: host
+    security_opt:
+      - apparmor:unconfined
+      - seccomp:unconfined
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+
+    networks:
+      - internal
+
+networks:
+  internal:
+    external: true
+    name: "{{ docker_networks.internal.name }}"
+
+  public:
+    external: true
+    name: "{{ docker_networks.public.name }}"

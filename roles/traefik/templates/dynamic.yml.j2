@@ -1,0 +1,45 @@
+# =============================================================================
+# Traefik Dynamic Configuration
+# =============================================================================
+# Динамическая конфигурация Traefik, применяется без перезапуска.
+# Здесь определяются routers, middlewares, services.
+# Traefik v3.6.7 Docs: https://doc.traefik.io/traefik/v3.6/getting-started/configuration-overview/
+# =============================================================================
+
+http:
+  # Routers - Правила маршрутизации
+  routers:
+    # Traefik Dashboard Router
+    dashboard:
+      rule: "Host(`{{ traefik_dashboard_host }}`)"
+      service: "api@internal"
+      entryPoints:
+        - "web"
+      middlewares:
+        - "dashboard-to-root"
+
+  # Middlewares - Модификация запросов/ответов
+  middlewares:
+    # Dashboard Redirect Middleware
+    # Перенаправляет http://traefik.home.local/ → http://traefik.home.local/dashboard/
+    dashboard-to-root:
+      redirectRegex:
+        regex: "^http://{{ traefik_dashboard_host | regex_escape() }}/?$"
+        replacement: "http://{{ traefik_dashboard_host }}/dashboard/"
+        permanent: false                              # 302 Temporary Redirect
+
+    # Security Headers Middleware
+    # Рекомендуется применять ко всем внешним сервисам
+    # Docs: https://doc.traefik.io/traefik/middlewares/http/headers/
+    security-headers:
+      headers:
+        sslRedirect: false                            # TODO: включить true когда будет HTTPS
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "no-referrer"
+        customFrameOptionsValue: "SAMEORIGIN"

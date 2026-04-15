@@ -1,0 +1,48 @@
+# =============================================================================
+# Traefik Global Configuration (Static)
+# =============================================================================
+# Статическая конфигурация Traefik, требует перезапуска при изменении.
+# Для динамической конфигурации (без перезапуска) см. dynamic.yml
+# Traefik v3.6.7 Docs: https://doc.traefik.io/traefik/v3.6/
+# =============================================================================
+
+# API & Dashboard Configuration
+api:
+  dashboard: true
+  # ⚠️ ВАЖНО: insecure: true позволяет доступ к Dashboard без middleware
+  # Рекомендуется убрать после настройки Basic Auth (см. docs/08_security.md)
+  insecure: true
+
+# TODO: Разобраться с пингом для хелсчеков
+ping: {}
+
+# entryPoints - Точки входа для трафика
+entryPoints:
+  web:
+    address: ":80"                        # HTTP для локальных сервисов и ACME challenge
+
+{% if traefik_enable_https | bool %}
+  websecure:
+    address: ":443"                       # HTTPS для будущих внешних сервисов с Let's Encrypt
+{% endif %}
+
+# Providers - Источники конфигурации
+providers:
+  # Docker Provider - Автоматическое обнаружение контейнеров
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    # exposedByDefault: false повышает безопасность
+    # Только контейнеры с label "traefik.enable=true" будут доступны
+    exposedByDefault: false
+    network: "{{ docker_networks.internal.name }}"
+
+  # File Provider - Динамическая конфигурация из файла
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true                           # Автоматически применять изменения без перезапуска
+
+# Logging
+log:
+  level: INFO                             # DEBUG, INFO, WARN, ERROR
+
+accessLog: {}                             # Настройки по умолчанию

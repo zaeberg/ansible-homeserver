@@ -10,7 +10,15 @@
 
 - name: Create application root directory
   ansible.builtin.file:
-    path: "{{ app_root }}"
+    path: "{{ paths.app_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create app data root directory
+  ansible.builtin.file:
+    path: "{{ paths.app_data_root }}"
     state: directory
     owner: root
     group: root

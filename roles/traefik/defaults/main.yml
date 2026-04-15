@@ -1,0 +1,30 @@
+traefik_stack_dir: "{{ paths.app_root }}/traefik"
+traefik_config_dir: "{{ traefik_stack_dir }}/traefik"
+traefik_data_dir: "{{ paths.app_data_root }}/traefik"
+traefik_letsencrypt_dir: "{{ traefik_data_dir }}/letsencrypt"
+
+traefik_compose_project_name: homelab-traefik
+
+traefik_image: "traefik:v3.6.7"
+# Лучше потом зафиксировать на конкретный tag или digest, а не latest
+# Но у этого образа нет других тегов кроме latest
+traefik_avahi_image: "hardillb/traefik-avahi-helper:latest"
+
+traefik_container_name: homeserver-traefik
+traefik_avahi_container_name: homeserver-traefik-avahi-helper
+
+traefik_dashboard_host: "traefik.home.local"
+
+# Порты
+traefik_http_port: 80
+# Когда появится https вернуть true
+traefik_enable_https: false
+traefik_https_port: 443
+
+# 8080 публикуется только на LAN IP хоста
+traefik_enable_direct_dashboard_port: true
+traefik_dashboard_direct_port: 8080
+traefik_dashboard_bind_ip: "{{ ansible_facts['default_ipv4']['address'] }}"
+
+# На случай проблем с AppArmor/DBus у helper
+traefik_avahi_privileged: false
