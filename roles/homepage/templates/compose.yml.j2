@@ -5,7 +5,7 @@ services:
   # Дашборд для главной страницы с новостями и виджетами
   # Docs: https://github.com/glanceapp/
   # ---------------------------------------------------------------------------
-  
+ 
   glance:
     container_name: "{{ homepage_container_name }}"
     image: "{{ homepage_image }}"
@@ -18,13 +18,11 @@ services:
       - {{ homepage_config_dir }}:/app/config
       - {{ homepage_assets_dir }}:/app/assets
 
-    ports:
-      - "{{ actual_ip }}:{{ homepage_port }}:8080"
-
     env_file: {{ homepage_dir }}/.env
 
     networks:
       - internal
+      - public
 
     labels:
       - "traefik.enable=true"
