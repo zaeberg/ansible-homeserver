@@ -9,4 +9,5 @@
     - ufw
     - traefik
     - glances
+    - syncthing
     - homepage

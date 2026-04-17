@@ -1,0 +1,260 @@
+- name: Ensure XML tooling is installed for Syncthing config management
+  ansible.builtin.apt:
+    name: python3-lxml
+    state: present
+    update_cache: true
+
+- name: Resolve Syncthing runtime uid
+  ansible.builtin.command:
+    argv:
+      - id
+      - -u
+      - "{{ syncthing_run_as_user }}"
+  register: syncthing_uid
+  changed_when: false
+
+- name: Resolve Syncthing runtime gid
+  ansible.builtin.command:
+    argv:
+      - id
+      - -g
+      - "{{ syncthing_run_as_user }}"
+  register: syncthing_gid
+  changed_when: false
+
+- name: Ensure Syncthing directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ syncthing_stack_dir }}", owner: "root", group: "root", mode: "0755" }
+    - { path: "{{ syncthing_home_dir }}", owner: "{{ syncthing_uid.stdout }}", group: "{{ syncthing_gid.stdout }}", mode: "0750" }
+    - { path: "{{ syncthing_default_sync_dir }}", owner: "{{ syncthing_uid.stdout }}", group: "{{ syncthing_gid.stdout }}", mode: "0750" }
+
+- name: Persist Syncthing GUI username
+  ansible.builtin.copy:
+    dest: "{{ syncthing_stack_dir }}/gui-user.txt"
+    content: "{{ syncthing_gui_user }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  register: syncthing_gui_user_file
+
+- name: Check whether Syncthing GUI password exists
+  ansible.builtin.stat:
+    path: "{{ syncthing_stack_dir }}/gui-password.txt"
+  register: syncthing_gui_password_stat
+
+- name: Persist provided Syncthing GUI password
+  ansible.builtin.copy:
+    dest: "{{ syncthing_stack_dir }}/gui-password.txt"
+    content: "{{ syncthing_gui_password }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when: syncthing_gui_password | length > 0
+  register: syncthing_gui_password_provided
+  no_log: true
+
+- name: Generate Syncthing GUI password on first deploy
+  ansible.builtin.copy:
+    dest: "{{ syncthing_stack_dir }}/gui-password.txt"
+    content: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - syncthing_gui_password | length == 0
+    - not syncthing_gui_password_stat.stat.exists
+  register: syncthing_gui_password_generated
+  no_log: true
+
+- name: Read Syncthing GUI password
+  ansible.builtin.slurp:
+    path: "{{ syncthing_stack_dir }}/gui-password.txt"
+  register: syncthing_gui_password_raw
+  no_log: true
+
+- name: Check whether Syncthing config already exists
+  ansible.builtin.stat:
+    path: "{{ syncthing_home_dir }}/config.xml"
+  register: syncthing_config_file
+
+- name: Bootstrap Syncthing config and GUI credentials
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --hostname
+      - "{{ inventory_hostname }}"
+      - -e
+      - "PUID={{ syncthing_uid.stdout }}"
+      - -e
+      - "PGID={{ syncthing_gid.stdout }}"
+      - -e
+      - "TZ={{ syncthing_timezone }}"
+      - -v
+      - "{{ syncthing_home_dir }}:/var/syncthing"
+      - "{{ syncthing_image }}"
+      - generate
+      - --home=/var/syncthing
+      - "--gui-user={{ syncthing_gui_user }}"
+      - "--gui-password={{ syncthing_gui_password_raw.content | b64decode | trim }}"
+      - --no-port-probing
+  when:
+    - not syncthing_config_file.stat.exists or syncthing_gui_user_file.changed or (syncthing_gui_password_provided is defined and syncthing_gui_password_provided.changed) or (syncthing_gui_password_generated is defined and syncthing_gui_password_generated.changed)
+  register: syncthing_generate
+  changed_when: true
+  no_log: true
+
+- name: Configure Syncthing GUI listen address
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/gui/address
+    value: "{{ syncthing_gui_address }}"
+    pretty_print: true
+  register: syncthing_gui_address_config
+
+- name: Configure Syncthing GUI TLS
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/gui
+    attribute: tls
+    value: "{{ syncthing_gui_tls | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_gui_tls_config
+
+- name: Ensure Syncthing insecureAdminAccess node exists
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/gui/insecureAdminAccess
+    pretty_print: true
+  register: syncthing_gui_insecure_admin_access_node
+
+- name: Disable insecure admin access for Syncthing GUI
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/gui/insecureAdminAccess
+    value: "false"
+    pretty_print: true
+  register: syncthing_gui_insecure_admin_access
+
+- name: Disable opening a browser on Syncthing startup
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/startBrowser
+    value: "false"
+    pretty_print: true
+  register: syncthing_start_browser_config
+
+- name: Disable Syncthing self-upgrades inside the container
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/autoUpgradeIntervalH
+    value: "0"
+    pretty_print: true
+  register: syncthing_auto_upgrade_config
+
+- name: Configure Syncthing usage reporting
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/urAccepted
+    value: "{{ syncthing_usage_reporting_accepted | string }}"
+    pretty_print: true
+  register: syncthing_usage_reporting_config
+
+- name: Configure Syncthing global discovery
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/globalAnnounceEnabled
+    value: "{{ syncthing_global_announce_enabled | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_global_announce_config
+
+- name: Configure Syncthing local discovery
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/localAnnounceEnabled
+    value: "{{ syncthing_local_announce_enabled | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_local_announce_config
+
+- name: Configure Syncthing local discovery port
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/localAnnouncePort
+    value: "{{ syncthing_local_announce_port | string }}"
+    pretty_print: true
+  register: syncthing_local_announce_port_config
+
+- name: Configure Syncthing relays
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/relaysEnabled
+    value: "{{ syncthing_relays_enabled | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_relays_config
+
+- name: Configure Syncthing NAT traversal
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/options/natEnabled
+    value: "{{ syncthing_nat_enabled | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_nat_config
+
+- name: Render Docker Compose file for Syncthing
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ syncthing_stack_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: syncthing_compose_file
+
+- name: Track whether Syncthing must be restarted
+  ansible.builtin.set_fact:
+    syncthing_needs_restart: >-
+      {{
+        (syncthing_generate is defined and syncthing_generate.changed)
+        or syncthing_gui_address_config.changed
+        or syncthing_gui_tls_config.changed
+        or syncthing_gui_insecure_admin_access.changed
+        or syncthing_start_browser_config.changed
+        or syncthing_auto_upgrade_config.changed
+        or syncthing_usage_reporting_config.changed
+        or syncthing_global_announce_config.changed
+        or syncthing_local_announce_config.changed
+        or syncthing_local_announce_port_config.changed
+        or syncthing_relays_config.changed
+        or syncthing_nat_config.changed
+        or syncthing_compose_file.changed
+      }}
+
+- name: Deploy Syncthing with Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ syncthing_stack_dir }}"
+    project_name: "{{ syncthing_compose_project_name }}"
+    files:
+      - compose.yml
+    state: present
+    wait: true
+    wait_timeout: 120
+  register: syncthing_compose_deploy
+
+- name: Restart Syncthing to apply config changes
+  community.docker.docker_compose_v2:
+    project_src: "{{ syncthing_stack_dir }}"
+    project_name: "{{ syncthing_compose_project_name }}"
+    files:
+      - compose.yml
+    state: restarted
+    services:
+      - syncthing
+    wait: true
+    wait_timeout: 120
+  when: syncthing_needs_restart | bool

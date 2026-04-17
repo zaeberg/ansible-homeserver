@@ -30,6 +30,14 @@
     port: "{{ item }}"
   loop: "{{ ufw_public_tcp_ports }}"
 
+- name: Allow public UDP ports
+  community.general.ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item }}"
+  loop: "{{ ufw_public_udp_ports }}"
+  when: ufw_public_udp_ports | length > 0
+
 - name: Allow LAN-only TCP ports
   community.general.ufw:
     rule: allow
@@ -38,6 +46,27 @@
     src: "{{ item.0 }}"
     comment: "LAN only"
   loop: "{{ ufw_lan_cidrs | product(ufw_lan_only_tcp_ports) | list }}"
+  when: ufw_lan_only_tcp_ports | length > 0
+
+- name: Remove obsolete LAN-only TCP ports
+  community.general.ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ item.1 }}"
+    src: "{{ item.0 }}"
+    delete: true
+  loop: "{{ ufw_lan_cidrs | product(ufw_remove_lan_only_tcp_ports) | list }}"
+  when: ufw_remove_lan_only_tcp_ports | length > 0
+
+- name: Allow LAN-only UDP ports
+  community.general.ufw:
+    rule: allow
+    proto: udp
+    port: "{{ item.1 }}"
+    src: "{{ item.0 }}"
+    comment: "LAN only"
+  loop: "{{ ufw_lan_cidrs | product(ufw_lan_only_udp_ports) | list }}"
+  when: ufw_lan_only_udp_ports | length > 0
 
 - name: Enable ufw
   community.general.ufw:

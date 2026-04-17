@@ -1,0 +1,24 @@
+syncthing_image: "syncthing/syncthing:2.0.16"
+syncthing_container_name: "homeserver-syncthing"
+syncthing_compose_project_name: homeserver-syncthing
+
+syncthing_run_as_user: "{{ docker_user }}"
+syncthing_timezone: "Europe/Kaliningrad"
+
+syncthing_stack_dir: "{{ paths.app_root }}/syncthing"
+syncthing_home_dir: "{{ paths.app_data_root }}/syncthing"
+syncthing_default_sync_dir: "{{ syncthing_home_dir }}/Sync"
+
+syncthing_host: "syncthing.home.local"
+syncthing_gui_port: 8384
+syncthing_gui_address: "0.0.0.0:8384"
+syncthing_gui_user: "admin"
+syncthing_gui_password: ""
+syncthing_gui_tls: false
+
+syncthing_global_announce_enabled: true
+syncthing_local_announce_enabled: true
+syncthing_local_announce_port: 21027
+syncthing_relays_enabled: true
+syncthing_nat_enabled: true
+syncthing_usage_reporting_accepted: -1

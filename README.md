@@ -13,3 +13,14 @@ ansible-playbook playbooks/site.yml --ask-become-pass
 ansible-playbook playbooks/site.yml
 ```
 
+
+Для настройки сети на VM
+```
+  - Subnet: 192.168.122.0/24
+  - Address: 192.168.122.50
+  - Gateway: 192.168.122.1
+  - Name servers: 1.1.1.1,8.8.8.8
+  - Search domains: оставить пустым
+```
+```
+```

@@ -1,0 +1,60 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Syncthing - Peer-to-peer file synchronization
+  # ---------------------------------------------------------------------------
+  # Позволяет синхронизировать файлы на разных устройствах по Peer-to-peer
+  # GUI публикуется через Traefik, а sync/discovery порты остаются прямыми.
+  # ---------------------------------------------------------------------------
+  syncthing:
+    image: "{{ syncthing_image }}"
+    container_name: "{{ syncthing_container_name }}"
+    hostname: "{{ inventory_hostname }}"
+
+    restart: unless-stopped
+
+    environment:
+      - PUID={{ syncthing_uid.stdout }}
+      - PGID={{ syncthing_gid.stdout }}
+      - TZ={{ syncthing_timezone }}
+      - STNOUPGRADE=1
+      - STNOBROWSER=1
+      - STGUIADDRESS={{ syncthing_gui_address }}
+
+    ports:
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
+
+    volumes:
+      - {{ syncthing_home_dir }}:/var/syncthing
+
+    networks:
+      - internal
+      - public
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ docker_networks.internal.name }}"
+      - "traefik.http.routers.syncthing.rule=Host(`{{ syncthing_host }}`)"
+      - "traefik.http.services.syncthing.loadbalancer.server.port={{ syncthing_gui_port }}"
+      - "traefik.http.routers.syncthing.entrypoints=web"
+
+    healthcheck:
+{% if syncthing_gui_tls | bool %}
+      test: ["CMD-SHELL", "curl -fsSk https://127.0.0.1:{{ syncthing_gui_port }}/rest/noauth/health || exit 1"]
+{% else %}
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:{{ syncthing_gui_port }}/rest/noauth/health || exit 1"]
+{% endif %}
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  internal:
+    external: true
+    name: "{{ docker_networks.internal.name }}"
+
+  public:
+    external: true
+    name: "{{ docker_networks.public.name }}"

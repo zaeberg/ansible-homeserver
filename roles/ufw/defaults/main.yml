@@ -14,7 +14,18 @@ ufw_defaults:
 ufw_public_tcp_ports:
   - "22"
   - "80"
+  - "22000"
+
+ufw_public_udp_ports:
+  - "22000"
 
 # Порты, которые открыты только из LAN
 ufw_lan_only_tcp_ports:
   - "8080"
+
+ufw_lan_only_udp_ports:
+  - "21027"
+
+# Удаляем старые правила, которые больше не должны существовать
+ufw_remove_lan_only_tcp_ports:
+  - "8384"

@@ -21,6 +21,10 @@
               url: http://glances.home.local
               check-url: http://homeserver-glances:61208/api/4/status
               icon: auto-invert sh:glances-dark
+            - title: Syncthing
+              url: http://syncthing.home.local
+              check-url: http://homeserver-syncthing:8384/rest/noauth/health
+              icon: auto-invert sh:syncthing-dark
 
     - size: small
       widgets:
@@ -28,4 +32,3 @@
           location: Kaliningrad, Russia
           units: metric # alternatively "imperial"
           hour-format: 24h # alternatively "12h"
-
