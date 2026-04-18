@@ -5,6 +5,7 @@
     groups: sudo
     append: true
     create_home: true
+    password: "{{ admin_password_hash if (admin_password_hash | default('') | length > 0) else omit }}"
     state: present
 
 - name: Install admin SSH public keys
@@ -23,6 +24,13 @@
     group: root
     mode: "0440"
   when: admin_nopasswd_sudo | bool
+
+- name: Schedule removal of passwordless sudo for admin user
+  ansible.builtin.debug:
+    msg: "Passwordless sudo will be removed for {{ admin_user }} at the end of the play."
+  changed_when: true
+  when: not admin_nopasswd_sudo | bool
+  notify: Remove passwordless sudo
 
 - name: Disable SSH password authentication
   ansible.builtin.lineinfile:

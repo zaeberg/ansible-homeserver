@@ -15,7 +15,7 @@
           sites:
             - title: Traefik
               url: http://traefik.home.local
-              check-url: http://homeserver-traefik:8080/ping
+              check-url: http://homeserver-traefik/ping
               icon: auto-invert sh:traefik-dark
             - title: Glances
               url: http://glances.home.local

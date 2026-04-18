@@ -31,6 +31,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - {{ traefik_config_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro
       - {{ traefik_config_dir }}/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - {{ traefik_config_dir }}/dashboard-users.htpasswd:/etc/traefik/dashboard-users.htpasswd:ro
       - {{ traefik_letsencrypt_dir }}:/letsencrypt
 
     networks:
@@ -43,6 +44,7 @@ services:
       - "traefik.http.routers.dashboard.rule=Host(`{{ traefik_dashboard_host }}`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-to-root@file,dashboard-auth@file,security-headers@file"
 
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]

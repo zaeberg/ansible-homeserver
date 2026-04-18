@@ -16,9 +16,9 @@ syncthing_gui_user: "admin"
 syncthing_gui_password: ""
 syncthing_gui_tls: false
 
-syncthing_global_announce_enabled: true
+syncthing_global_announce_enabled: false
 syncthing_local_announce_enabled: true
 syncthing_local_announce_port: 21027
-syncthing_relays_enabled: true
-syncthing_nat_enabled: true
+syncthing_relays_enabled: false
+syncthing_nat_enabled: false
 syncthing_usage_reporting_accepted: -1

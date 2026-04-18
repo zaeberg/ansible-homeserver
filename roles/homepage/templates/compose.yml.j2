@@ -14,9 +14,11 @@ services:
 
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro              # если нужен виджет с докером
       - {{ homepage_config_dir }}:/app/config
       - {{ homepage_assets_dir }}:/app/assets
+{% if homepage_mount_docker_socket | bool %}
+      - /var/run/docker.sock:/var/run/docker.sock:ro              # если нужен виджет с докером
+{% endif %}
 
     env_file: {{ homepage_dir }}/.env
 
@@ -30,6 +32,7 @@ services:
       - "traefik.http.routers.homepage.rule=Host(`{{ homepage_host }}`)"
       - "traefik.http.services.homepage.loadbalancer.server.port={{ homepage_port }}"
       - "traefik.http.routers.homepage.entrypoints=web"
+      - "traefik.http.routers.homepage.middlewares=security-headers@file"
 
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:{{ homepage_port }} || exit 1"]

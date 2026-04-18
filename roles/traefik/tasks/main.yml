@@ -3,6 +3,7 @@
     name:
       - avahi-daemon
       - dbus
+      - python3-passlib
     state: present
     update_cache: true
 
@@ -24,6 +25,91 @@
     - { path: "{{ traefik_config_dir }}", mode: "0755" }
     - { path: "{{ traefik_letsencrypt_dir }}", mode: "0700" }
 
+- name: Check whether Traefik dashboard password exists
+  ansible.builtin.stat:
+    path: "{{ traefik_stack_dir }}/dashboard-password.txt"
+  register: traefik_dashboard_password_stat
+
+- name: Persist provided Traefik dashboard password
+  ansible.builtin.copy:
+    dest: "{{ traefik_stack_dir }}/dashboard-password.txt"
+    content: "{{ traefik_dashboard_auth_password }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when: traefik_dashboard_auth_password | length > 0
+  no_log: true
+
+- name: Generate Traefik dashboard password on first deploy
+  ansible.builtin.copy:
+    dest: "{{ traefik_stack_dir }}/dashboard-password.txt"
+    content: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - traefik_dashboard_auth_password | length == 0
+    - not traefik_dashboard_password_stat.stat.exists
+    - not ansible_check_mode
+  no_log: true
+
+- name: Read Traefik dashboard password
+  ansible.builtin.slurp:
+    path: "{{ traefik_stack_dir }}/dashboard-password.txt"
+  register: traefik_dashboard_password_raw
+  when:
+    - traefik_dashboard_auth_password | length == 0
+    - traefik_dashboard_password_stat.stat.exists or not ansible_check_mode
+  no_log: true
+
+- name: Use provided Traefik dashboard password
+  ansible.builtin.set_fact:
+    traefik_dashboard_auth_effective_password: "{{ traefik_dashboard_auth_password }}"
+  when: traefik_dashboard_auth_password | length > 0
+  no_log: true
+
+- name: Use stored Traefik dashboard password
+  ansible.builtin.set_fact:
+    traefik_dashboard_auth_effective_password: "{{ traefik_dashboard_password_raw.content | b64decode | trim }}"
+  when:
+    - traefik_dashboard_auth_password | length == 0
+    - traefik_dashboard_password_raw is defined
+    - not (traefik_dashboard_password_raw is skipped)
+  no_log: true
+
+- name: Generate ephemeral Traefik dashboard password for check mode
+  ansible.builtin.set_fact:
+    traefik_dashboard_auth_effective_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}"
+  when:
+    - traefik_dashboard_auth_password | length == 0
+    - not traefik_dashboard_password_stat.stat.exists
+    - ansible_check_mode
+  no_log: true
+
+- name: Render placeholder Traefik dashboard htpasswd file in check mode
+  ansible.builtin.copy:
+    dest: "{{ traefik_config_dir }}/dashboard-users.htpasswd"
+    content: "{{ traefik_dashboard_auth_user }}:{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=\n"
+    owner: root
+    group: root
+    mode: "0640"
+  when: ansible_check_mode
+  register: traefik_dashboard_htpasswd_placeholder
+  no_log: true
+
+- name: Render Traefik dashboard htpasswd file
+  community.general.htpasswd:
+    path: "{{ traefik_config_dir }}/dashboard-users.htpasswd"
+    name: "{{ traefik_dashboard_auth_user }}"
+    password: "{{ traefik_dashboard_auth_effective_password }}"
+    crypt_scheme: bcrypt
+    owner: root
+    group: root
+    mode: "0640"
+  when: not ansible_check_mode
+  register: traefik_dashboard_htpasswd_file
+  no_log: true
+
 - name: Render Traefik static configuration
   ansible.builtin.template:
     src: traefik.yml.j2
@@ -31,6 +117,7 @@
     owner: root
     group: root
     mode: "0644"
+  register: traefik_static_config
 
 - name: Render Traefik dynamic configuration
   ansible.builtin.template:
@@ -39,6 +126,7 @@
     owner: root
     group: root
     mode: "0644"
+  register: traefik_dynamic_config
 
 - name: Render Docker Compose file for Traefik stack
   ansible.builtin.template:
@@ -47,6 +135,18 @@
     owner: root
     group: root
     mode: "0644"
+  register: traefik_compose_file
+
+- name: Track whether Traefik must be restarted
+  ansible.builtin.set_fact:
+    traefik_needs_restart: >-
+      {{
+        (traefik_dashboard_htpasswd_placeholder is defined and traefik_dashboard_htpasswd_placeholder.changed)
+        or (traefik_dashboard_htpasswd_file is defined and traefik_dashboard_htpasswd_file.changed)
+        or traefik_static_config.changed
+        or traefik_dynamic_config.changed
+        or traefik_compose_file.changed
+      }}
 
 - name: Traefik - Deploy with Docker Compose v2
   community.docker.docker_compose_v2:
@@ -57,3 +157,16 @@
     state: present
     wait: true
     wait_timeout: 120
+
+- name: Restart Traefik to pick up updated mounted config files
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_stack_dir }}"
+    project_name: "{{ traefik_compose_project_name }}"
+    files:
+      - compose.yml
+    state: restarted
+    services:
+      - traefik
+    wait: true
+    wait_timeout: 120
+  when: traefik_needs_restart | bool

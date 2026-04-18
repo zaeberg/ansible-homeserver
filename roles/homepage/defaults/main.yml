@@ -9,3 +9,5 @@ homepage_port: 8080
 homepage_dir: "{{ paths.app_root }}/homepage"
 homepage_config_dir: "{{ homepage_dir }}/config"
 homepage_assets_dir: "{{ homepage_dir }}/assets"
+
+homepage_mount_docker_socket: false

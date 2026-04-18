@@ -1,4 +1,6 @@
 admin_user: admin
+# После настройки admin_password_hash через Ansible Vault
+# можно переключить в false и использовать --ask-become-pass
 admin_nopasswd_sudo: true
 
 admin_public_keys:

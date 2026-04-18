@@ -41,6 +41,7 @@ services:
       - "traefik.http.routers.glances.rule=Host(`{{ glances_host }}`)"
       - "traefik.http.services.glances.loadbalancer.server.port={{ glances_port }}"
       - "traefik.http.routers.glances.entrypoints=web"
+      - "traefik.http.routers.glances.middlewares=security-headers@file"
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:{{ glances_port }}/api/4/status"]

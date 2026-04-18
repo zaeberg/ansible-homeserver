@@ -11,21 +11,31 @@ ufw_defaults:
   routed: deny
 
 # Порты, которые открыты для всех
-ufw_public_tcp_ports:
+ufw_public_tcp_ports: []
+
+ufw_public_udp_ports: []
+
+# Порты, которые открыты только из LAN
+ufw_lan_only_tcp_ports:
   - "22"
   - "80"
   - "22000"
 
-ufw_public_udp_ports:
-  - "22000"
-
-# Порты, которые открыты только из LAN
-ufw_lan_only_tcp_ports:
-  - "8080"
-
 ufw_lan_only_udp_ports:
   - "21027"
+  - "22000"
 
 # Удаляем старые правила, которые больше не должны существовать
+ufw_remove_public_tcp_ports:
+  - "22"
+  - "80"
+  - "22000"
+
+ufw_remove_public_udp_ports:
+  - "22000"
+
 ufw_remove_lan_only_tcp_ports:
+  - "8080"
   - "8384"
+
+ufw_remove_lan_only_udp_ports: []

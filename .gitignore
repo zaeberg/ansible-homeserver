@@ -1,1 +1,7 @@
 .env
+
+.vault_pass.txt
+inventory/group_vars/homeserver/90_vault.yml
+
+AGENTS.md
+.codex

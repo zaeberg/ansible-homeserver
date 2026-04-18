@@ -7,26 +7,20 @@
 # =============================================================================
 
 http:
-  # Routers - Правила маршрутизации
-  routers:
-    # Traefik Dashboard Router
-    dashboard:
-      rule: "Host(`{{ traefik_dashboard_host }}`)"
-      service: "api@internal"
-      entryPoints:
-        - "web"
-      middlewares:
-        - "dashboard-to-root"
-
   # Middlewares - Модификация запросов/ответов
   middlewares:
     # Dashboard Redirect Middleware
     # Перенаправляет http://traefik.home.local/ → http://traefik.home.local/dashboard/
     dashboard-to-root:
       redirectRegex:
-        regex: "^http://{{ traefik_dashboard_host | regex_escape() }}/?$"
-        replacement: "http://{{ traefik_dashboard_host }}/dashboard/"
+        regex: '^http://{{ traefik_dashboard_host | regex_escape() }}/?$'
+        replacement: 'http://{{ traefik_dashboard_host }}/dashboard/'
         permanent: false                              # 302 Temporary Redirect
+
+    # Dashboard Basic Auth
+    dashboard-auth:
+      basicAuth:
+        usersFile: "/etc/traefik/dashboard-users.htpasswd"
 
     # Security Headers Middleware
     # Рекомендуется применять ко всем внешним сервисам
@@ -37,7 +31,7 @@ http:
         stsSeconds: 31536000
         stsIncludeSubdomains: true
         stsPreload: true
-        forceSTSHeader: true
+        forceSTSHeader: false
         frameDeny: true
         contentTypeNosniff: true
         browserXssFilter: true

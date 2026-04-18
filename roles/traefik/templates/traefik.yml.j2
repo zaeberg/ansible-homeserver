@@ -9,12 +9,10 @@
 # API & Dashboard Configuration
 api:
   dashboard: true
-  # ⚠️ ВАЖНО: insecure: true позволяет доступ к Dashboard без middleware
-  # Рекомендуется убрать после настройки Basic Auth (см. docs/08_security.md)
-  insecure: true
+  insecure: false
 
-# TODO: Разобраться с пингом для хелсчеков
-ping: {}
+ping:
+  entryPoint: web
 
 # entryPoints - Точки входа для трафика
 entryPoints:

@@ -38,6 +38,7 @@ services:
       - "traefik.http.routers.syncthing.rule=Host(`{{ syncthing_host }}`)"
       - "traefik.http.services.syncthing.loadbalancer.server.port={{ syncthing_gui_port }}"
       - "traefik.http.routers.syncthing.entrypoints=web"
+      - "traefik.http.routers.syncthing.middlewares=security-headers@file"
 
     healthcheck:
 {% if syncthing_gui_tls | bool %}

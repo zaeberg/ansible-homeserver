@@ -12,6 +12,7 @@
       - "{{ syncthing_run_as_user }}"
   register: syncthing_uid
   changed_when: false
+  check_mode: false
 
 - name: Resolve Syncthing runtime gid
   ansible.builtin.command:
@@ -21,6 +22,7 @@
       - "{{ syncthing_run_as_user }}"
   register: syncthing_gid
   changed_when: false
+  check_mode: false
 
 - name: Ensure Syncthing directories exist
   ansible.builtin.file:
@@ -69,6 +71,7 @@
   when:
     - syncthing_gui_password | length == 0
     - not syncthing_gui_password_stat.stat.exists
+    - not ansible_check_mode
   register: syncthing_gui_password_generated
   no_log: true
 
@@ -76,6 +79,33 @@
   ansible.builtin.slurp:
     path: "{{ syncthing_stack_dir }}/gui-password.txt"
   register: syncthing_gui_password_raw
+  when:
+    - syncthing_gui_password | length == 0
+    - syncthing_gui_password_stat.stat.exists or not ansible_check_mode
+  no_log: true
+
+- name: Use provided Syncthing GUI password
+  ansible.builtin.set_fact:
+    syncthing_gui_password_effective: "{{ syncthing_gui_password }}"
+  when: syncthing_gui_password | length > 0
+  no_log: true
+
+- name: Use stored Syncthing GUI password
+  ansible.builtin.set_fact:
+    syncthing_gui_password_effective: "{{ syncthing_gui_password_raw.content | b64decode | trim }}"
+  when:
+    - syncthing_gui_password | length == 0
+    - syncthing_gui_password_raw is defined
+    - not (syncthing_gui_password_raw is skipped)
+  no_log: true
+
+- name: Generate ephemeral Syncthing GUI password for check mode
+  ansible.builtin.set_fact:
+    syncthing_gui_password_effective: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}"
+  when:
+    - syncthing_gui_password | length == 0
+    - not syncthing_gui_password_stat.stat.exists
+    - ansible_check_mode
   no_log: true
 
 - name: Check whether Syncthing config already exists
@@ -103,7 +133,7 @@
       - generate
       - --home=/var/syncthing
       - "--gui-user={{ syncthing_gui_user }}"
-      - "--gui-password={{ syncthing_gui_password_raw.content | b64decode | trim }}"
+      - "--gui-password={{ syncthing_gui_password_effective }}"
       - --no-port-probing
   when:
     - not syncthing_config_file.stat.exists or syncthing_gui_user_file.changed or (syncthing_gui_password_provided is defined and syncthing_gui_password_provided.changed) or (syncthing_gui_password_generated is defined and syncthing_gui_password_generated.changed)

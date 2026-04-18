@@ -20,9 +20,12 @@ traefik_http_port: 80
 traefik_enable_https: false
 traefik_https_port: 443
 
-# 8080 публикуется только на LAN IP хоста
-traefik_enable_direct_dashboard_port: true
+# Прямой порт dashboard по умолчанию отключён.
+traefik_enable_direct_dashboard_port: false
 traefik_dashboard_direct_port: 8080
+
+traefik_dashboard_auth_user: "admin"
+traefik_dashboard_auth_password: ""
 
 # На случай проблем с AppArmor/DBus у helper
 traefik_avahi_privileged: false

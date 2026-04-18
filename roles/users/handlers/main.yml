@@ -2,3 +2,8 @@
   ansible.builtin.service:
     name: ssh
     state: restarted
+
+- name: Remove passwordless sudo
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/90-{{ admin_user }}"
+    state: absent
