@@ -158,6 +158,15 @@
     pretty_print: true
   register: syncthing_gui_tls_config
 
+- name: Configure Syncthing GUI basic auth prompt
+  community.general.xml:
+    path: "{{ syncthing_home_dir }}/config.xml"
+    xpath: /configuration/gui
+    attribute: sendBasicAuthPrompt
+    value: "{{ syncthing_gui_send_basic_auth_prompt | ternary('true', 'false') }}"
+    pretty_print: true
+  register: syncthing_gui_basic_auth_prompt_config
+
 - name: Ensure Syncthing insecureAdminAccess node exists
   community.general.xml:
     path: "{{ syncthing_home_dir }}/config.xml"
@@ -253,6 +262,7 @@
         (syncthing_generate is defined and syncthing_generate.changed)
         or syncthing_gui_address_config.changed
         or syncthing_gui_tls_config.changed
+        or syncthing_gui_basic_auth_prompt_config.changed
         or syncthing_gui_insecure_admin_access.changed
         or syncthing_start_browser_config.changed
         or syncthing_auto_upgrade_config.changed

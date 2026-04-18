@@ -298,21 +298,29 @@ HTTPS entrypoint пока не публикуется, потому что `trae
 GUI:
 
 - слушает внутри контейнера `0.0.0.0:8384`
-- доступен в LAN по `http://syncthing.home.local`
+- доступен в LAN по `http://syncthing.home.local` через `Traefik`
 - host port `8384` не публикуется
 
 Конфигурация GUI:
 
-- при отсутствии явно заданного пароля роль генерирует пароль при первом деплое;
-- логин и пароль сохраняются в:
+- включена аутентификация GUI;
+- логин сохраняется в:
   - `/opt/apps/syncthing/gui-user.txt`
+- plaintext-пароль сохраняется в:
   - `/opt/apps/syncthing/gui-password.txt`
+- пароль из `gui-password.txt` применяется ролью при bootstrap или обновлении GUI credentials;
+- hash пароля хранится в `/srv/data/syncthing/config.xml`, его формирует сам `Syncthing`;
+- если `syncthing_gui_password` задан в Ansible vars, включая `Ansible Vault`, используется именно он;
+- если пароль не задан явно, роль генерирует его при первом деплое;
 
 Принудительно задаваемые параметры:
 
+- `tls = false`
+- `sendBasicAuthPrompt = true`
 - `insecureAdminAccess = false`
 - `startBrowser = false`
 - `autoUpgradeIntervalH = 0`
+- `urAccepted = -1`
 - `globalAnnounceEnabled = false`
 - `localAnnounceEnabled = true`
 - `localAnnouncePort = 21027`
