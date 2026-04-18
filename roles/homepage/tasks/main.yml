@@ -28,13 +28,13 @@
     mode: "0644"
     directory_mode: "0755"
 
-- name: Homepage - Copy env file
-  ansible.builtin.copy:
-    src: ".env"
+- name: Homepage - Render env file
+  ansible.builtin.template:
+    src: ".env.j2"
     dest: "{{ homepage_dir }}/.env"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0600"
 
 - name: Homepage - Render Docker Compose file
   ansible.builtin.template:

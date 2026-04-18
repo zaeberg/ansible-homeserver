@@ -11,3 +11,4 @@ homepage_config_dir: "{{ homepage_dir }}/config"
 homepage_assets_dir: "{{ homepage_dir }}/assets"
 
 homepage_mount_docker_socket: false
+homepage_env: {}
